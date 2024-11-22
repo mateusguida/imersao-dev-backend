@@ -1,6 +1,8 @@
 import fs from "fs"; // Importa o módulo 'fs' do Node.js para realizar operações com o sistema de arquivos, como renomear arquivos.
 
-import { getTodosPosts, criarPost } from "../models/postsModels.js"; // Importa as funções `getTodosPosts` e `criarPost` do módulo `postsModels`, que provavelmente interagem com um banco de dados para buscar e criar posts.
+import { getTodosPosts, criarPost, atualizarPost } from "../models/postsModels.js"; // Importa as funções `getTodosPosts` e `criarPost` do módulo `postsModels`, que provavelmente interagem com um banco de dados para buscar e criar posts.
+
+import gerarDescricaoComGemini from "../services/geminiService.js";
 
 export async function listarPosts(req, res) {
   // Chama a função para buscar os posts do banco de dados e armazena o resultado na constante 'posts'.
@@ -44,5 +46,26 @@ export async function uploadImagem(req, res) {
     // Caso ocorra algum erro durante o processo, imprime a mensagem de erro no console e envia uma resposta HTTP com status 500 (Erro interno do servidor).
     console.error(erro.message);
     res.status(500).json({ "Erro": "Falha na requisição" });
+  }
+}
+
+export async function atualizarNovoPost(req, res) {
+  const id = req.params.id;
+  const urlImagem = `http://localhost:3000/${id}.png`
+  try {
+      const imgBuffer = fs.readFileSync(`uploads/${id}.png`)
+      const descricao = await gerarDescricaoComGemini(imgBuffer)
+
+      const post = {
+          imgUrl: urlImagem,
+          descricao: descricao,
+          alt: req.body.alt
+      }
+
+      const postCriado = await atualizarPost(id, post);
+      res.status(200).json(postCriado);  
+  } catch(erro) {
+      console.error(erro.message);
+      res.status(500).json({"Erro":"Falha na requisição"});
   }
 }
